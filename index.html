@@ -126,14 +126,15 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, collection, addDoc, query, where, getDocs, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase Credentials
+    // Firebase Config အမှန် (web-chatting-98e4d)
     const firebaseConfig = {
-      apiKey: "AIzaSyD8PiDczKyJPrQdwyB2EmjlUdFOnr6ACVc",
-      authDomain: "chat-6db74.firebaseapp.com",
-      projectId: "chat-6db74",
-      storageBucket: "chat-6db74.firebasestorage.app",
-      messagingSenderId: "944161921075",
-      appId: "1:944161921075:web:004f9c4026ebbb0a05ab46"
+      apiKey: "AIzaSyAKU-bpHcog8i70Gcrj7W5CtJFy55icYs2g",
+      authDomain: "web-chatting-98e4d.firebaseapp.com",
+      projectId: "web-chatting-98e4d",
+      storageBucket: "web-chatting-98e4d.firebasestorage.app",
+      messagingSenderId: "187236710703",
+      appId: "1:187236710703:web:6a765ce28354ba9a0c9da",
+      measurementId: "G-JFD72KPXN0"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -175,7 +176,7 @@
     const chatTargetText = document.getElementById('chat-target-text');
     const closeChatBtn = document.getElementById('close-chat-btn');
 
-    // Auto Unique Myanmar ID Generator
+    // Auto Unique Myanmar ID Generator (8 Characters)
     function generateMyanmarId() {
       const chars = "ကခဂဃငစဆဇဈညဋဌဍဎဏတထဒဓနပဖဗဘမယရလဝသဟဠအ၀၁၂၃၄၅၆၇၈၉";
       let result = "";
@@ -421,5 +422,3 @@
   </script>
 </body>
 </html>
-
-  
