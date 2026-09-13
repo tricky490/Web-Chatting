@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Web Chat App</title>
+
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #e5ddd5; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .container { width: 100%; max-width: 450px; height: 90vh; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Header Bar */
+    .header { background: #075e54; color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+    .header-info { display: flex; flex-direction: column; }
+    .user-name { font-weight: bold; font-size: 15px; }
+    .user-id-box { font-size: 11px; opacity: 0.9; margin-top: 3px; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    .btn-copy { background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 5px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+    .header-actions { display: flex; gap: 4px; align-items: center; }
+    .btn-top { background: #128c7e; color: white; border: none; padding: 6px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .btn-public { background: #008cba; color: white; border: none; padding: 6px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+    .btn-logout { background: #dc3545; color: white; border: none; padding: 6px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    
+    /* Search & Friend Panels */
+    .panel-box { background: #f0f0f0; padding: 10px 15px; border-bottom: 1px solid #ccc; max-height: 250px; overflow-y: auto; }
+    .search-input-group { display: flex; gap: 8px; margin-bottom: 8px; }
+    .panel-box input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; outline: none; }
+    .panel-box button { padding: 8px 12px; background: #075e54; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .result-card { background: white; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #ddd; margin-top: 5px; }
+    .btn-add-friend { background: #25D366; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+    .friend-item { background: white; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; cursor: pointer; border: 1px solid #ddd; }
+    .status-dot { height: 9px; width: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .status-online { background-color: #25D366; }
+    .status-offline { background-color: #ccc; }
+    
+    /* Chat Box Area */
+    .chat-header-bar { background: #128c7e; color: white; padding: 10px 15px; font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+    .chat-header-bar.public-mode { background: #008cba; }
+    .btn-close-chat { background: transparent; border: 1px solid white; color: white; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
+    .chat-area-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #efeae2; }
+    .chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; word-wrap: break-word; position: relative; }
+    .msg-sent { align-self: flex-end; background: #dcf8c6; }
+    .msg-received { align-self: flex-start; background: white; }
+    .msg-header { font-size: 11px; font-weight: bold; color: #075e54; margin-bottom: 3px; }
+    .input-box { display: flex; padding: 10px; background: #f0f0f0; border-top: 1px solid #ccc; }
+    .input-box input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+    .input-box button { margin-left: 8px; padding: 10px 18px; background: #128c7e; color: white; border: none; border-radius: 20px; cursor: pointer; }
+    
+    /* Login & Utility */
+    .login-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 15px; text-align: center; padding: 20px; }
+    .btn-login { background: #4285f4; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .empty-state { flex: 1; display: flex; justify-content: center; align-items: center; color: #777; font-size: 13px; text-align: center; padding: 20px; }
+    .hidden { display: none !important; }
+    .loading { font-size: 13px; color: #d9534f; margin-top: 10px; }
+    .section-title { font-size: 12px; font-weight: bold; color: #444; margin: 5px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+      <h2>Web Chat App မှ ကြိုဆိုပါတယ်</h2>
+      <p style="color: #666; font-size: 14px;">စကားပြောရန် Google Account ဖြင့် Sign in ဝင်ပါ</p>
+      <button id="login-btn" class="btn-login">Sign in with Google</button>
+      <div id="status-text" class="loading"></div>
+    </div>
+
+    <!-- Main Chat Screen -->
+    <div id="chat-screen" class="hidden" style="display: flex; flex-direction: column; height: 100%;">
+      <div class="header">
+        <div class="header-info">
+          <span id="user-name" class="user-name">User</span>
+          <div class="user-id-box" id="copy-id-btn" title="Copy ID">
+            <span>ID: <strong id="user-myanmar-id">------</strong></span>
+            <button class="btn-copy">Copy</button>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="public-room-btn" class="btn-public">🌐 Public</button>
+          <button id="toggle-search-btn" class="btn-top">🔍 ရှာရန်</button>
+          <button id="toggle-friends-btn" class="btn-top">👥 သူငယ်ချင်း</button>
+          <button id="logout-btn" class="btn-logout">ထွက်</button>
+        </div>
+      </div>
+
+      <!-- Search User Panel -->
+      <div id="search-section" class="panel-box hidden">
+        <div class="section-title">မြန်မာ ID ဖြင့် သူငယ်ချင်း ရှာရန်</div>
+        <div class="search-input-group">
+          <input type="text" id="search-id-input" placeholder="မြန်မာ ID ရိုက်ပါ..." />
+          <button id="find-user-btn">ရှာပါ</button>
+        </div>
+        <div id="search-result-area"></div>
+      </div>
+
+      <!-- Friends List Panel -->
+      <div id="friends-section" class="panel-box hidden">
+        <div class="section-title">ကျွန်ုပ်၏ သူငယ်ချင်းစာရင်း</div>
+        <div id="friends-list-area">သူငယ်ချင်း မရှိသေးပါ။</div>
+      </div>
+
+      <!-- Empty Home State -->
+      <div id="empty-state-msg" class="empty-state">
+        🌐 "Public" ကို နှိပ်၍ လူတိုင်းနှင့် စကားပြောပါ သို့မဟုတ် <br/> 👥 "သူငယ်ချင်း" စာရင်းမှ သီးသန့် ပြောပါ။
+      </div>
+
+      <!-- Active Chat Room Area -->
+      <div id="chat-wrapper" class="chat-area-container hidden">
+        <div id="chat-header-bar" class="chat-header-bar">
+          <span id="chat-target-text">Chatting...</span>
+          <button id="close-chat-btn" class="btn-close-chat">✕ ပိတ်မည်</button>
+        </div>
+        <div id="chat-box" class="chat-box"></div>
+        <div class="input-box">
+          <input type="text" id="message-input" placeholder="စာရိုက်ပါ..." />
+          <button id="send-btn">Send</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, collection, addDoc, query, where, getDocs, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebase Credentials
+    const firebaseConfig = {
+      apiKey: "AIzaSyD8PiDczKyJPrQdwyB2EmjlUdFOnr6ACVc",
+      authDomain: "chat-6db74.firebaseapp.com",
+      projectId: "chat-6db74",
+      storageBucket: "chat-6db74.firebasestorage.app",
+      messagingSenderId: "944161921075",
+      appId: "1:944161921075:web:004f9c4026ebbb0a05ab46"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    let currentUser = null;
+    let myMyanmarId = "";
+    let activeChatRoomId = null;
+    let unsubscribeListener = null;
+
+    // Elements
+    const loginScreen = document.getElementById('login-screen');
+    const chatScreen = document.getElementById('chat-screen');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userNameSpan = document.getElementById('user-name');
+    const userMyanmarIdSpan = document.getElementById('user-myanmar-id');
+    const copyIdBtn = document.getElementById('copy-id-btn');
+    const chatBox = document.getElementById('chat-box');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const statusText = document.getElementById('status-text');
+
+    const publicRoomBtn = document.getElementById('public-room-btn');
+    const toggleSearchBtn = document.getElementById('toggle-search-btn');
+    const toggleFriendsBtn = document.getElementById('toggle-friends-btn');
+    const searchSection = document.getElementById('search-section');
+    const friendsSection = document.getElementById('friends-section');
+    const searchIdInput = document.getElementById('search-id-input');
+    const findUserBtn = document.getElementById('find-user-btn');
+    const searchResultArea = document.getElementById('search-result-area');
+    const friendsListArea = document.getElementById('friends-list-area');
+    
+    const emptyStateMsg = document.getElementById('empty-state-msg');
+    const chatWrapper = document.getElementById('chat-wrapper');
+    const chatHeaderBar = document.getElementById('chat-header-bar');
+    const chatTargetText = document.getElementById('chat-target-text');
+    const closeChatBtn = document.getElementById('close-chat-btn');
+
+    // Auto Unique Myanmar ID Generator
+    function generateMyanmarId() {
+      const chars = "ကခဂဃငစဆဇဈညဋဌဍဎဏတထဒဓနပဖဗဘမယရလဝသဟဠအ၀၁၂၃၄၅၆၇၈၉";
+      let result = "";
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    async function setupUserProfile(user) {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        myMyanmarId = userSnap.data().myanmarId;
+        await updateDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() });
+      } else {
+        myMyanmarId = generateMyanmarId();
+        await setDoc(userRef, {
+          uid: user.uid,
+          displayName: user.displayName || 'Anonymous',
+          email: user.email,
+          myanmarId: myMyanmarId,
+          friends: [],
+          isOnline: true,
+          lastSeen: serverTimestamp(),
+          createdAt: serverTimestamp()
+        });
+      }
+      userMyanmarIdSpan.textContent = myMyanmarId;
+      loadFriendsList();
+    }
+
+    // Public Chat Room Action
+    publicRoomBtn.addEventListener('click', () => {
+      activeChatRoomId = "public_room_global";
+      chatTargetText.textContent = "🌐 Public Chat Room";
+      chatHeaderBar.classList.add('public-mode');
+      
+      friendsSection.classList.add('hidden');
+      searchSection.classList.add('hidden');
+      emptyStateMsg.classList.add('hidden');
+      chatWrapper.classList.remove('hidden');
+
+      loadMessages();
+    });
+
+    toggleSearchBtn.addEventListener('click', () => {
+      searchSection.classList.toggle('hidden');
+      friendsSection.classList.add('hidden');
+      searchResultArea.innerHTML = '';
+    });
+
+    toggleFriendsBtn.addEventListener('click', () => {
+      friendsSection.classList.toggle('hidden');
+      searchSection.classList.add('hidden');
+      loadFriendsList();
+    });
+
+    // Find User by ID
+    findUserBtn.addEventListener('click', async () => {
+      const targetId = searchIdInput.value.trim();
+      searchResultArea.innerHTML = '';
+
+      if (!targetId) return alert("မြန်မာ ID ရိုက်ထည့်ပါ");
+      if (targetId === myMyanmarId) return alert("မိမိ၏ ID ကို ရှာ၍မရပါ");
+
+      const q = query(collection(db, "users"), where("myanmarId", "==", targetId));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        searchResultArea.innerHTML = `<div style="color:red; font-size:12px;">ဒီ ID နဲ့ User ရှာမတွေ့ပါ။</div>`;
+      } else {
+        querySnapshot.forEach((docSnap) => {
+          const targetUser = docSnap.data();
+          const card = document.createElement('div');
+          card.className = 'result-card';
+          card.innerHTML = `
+            <div>
+              <strong>${targetUser.displayName}</strong><br/>
+              <small style="color:#666;">ID: ${targetUser.myanmarId}</small>
+            </div>
+            <button class="btn-add-friend" id="add-friend-action">👥 Add Friend</button>
+          `;
+          searchResultArea.appendChild(card);
+          document.getElementById('add-friend-action').addEventListener('click', () => addFriend(targetUser));
+        });
+      }
+    });
+
+    async function addFriend(targetUser) {
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, {
+          friends: arrayUnion({
+            uid: targetUser.uid,
+            displayName: targetUser.displayName,
+            myanmarId: targetUser.myanmarId
+          })
+        });
+        alert(`${targetUser.displayName} ကို သူငယ်ချင်းအဖြစ် ထည့်လိုက်ပါပြီ!`);
+        searchSection.classList.add('hidden');
+        loadFriendsList();
+      } catch (err) {
+        alert("Add Friend အဆင်မပြေပါ: " + err.message);
+      }
+    }
+
+    async function loadFriendsList() {
+      if (!currentUser) return;
+      const userRef = doc(db, "users", currentUser.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const friends = userSnap.data().friends || [];
+        friendsListArea.innerHTML = '';
+        if (friends.length === 0) {
+          friendsListArea.innerHTML = '<div style="font-size:12px; color:#666;">သူငယ်ချင်း မရှိသေးပါ။</div>';
+          return;
+        }
+        friends.forEach(async (friend) => {
+          const friendRef = doc(db, "users", friend.uid);
+          const friendSnap = await getDoc(friendRef);
+          let isOnline = friendSnap.exists() ? (friendSnap.data().isOnline || false) : false;
+
+          const item = document.createElement('div');
+          item.className = 'friend-item';
+          item.innerHTML = `
+            <div>
+              <span class="status-dot ${isOnline ? 'status-online' : 'status-offline'}"></span>
+              <strong>${friend.displayName}</strong> <small>(${isOnline ? 'Online' : 'Offline'})</small><br/>
+              <small style="color:#666; margin-left: 14px;">ID: ${friend.myanmarId}</small>
+            </div>
+            <span style="font-size:12px; color:#128c7e; font-weight:bold;">💬 စာပို့မည်</span>
+          `;
+          item.addEventListener('click', () => startPrivateChat(friend));
+          friendsListArea.appendChild(item);
+        });
+      }
+    }
+
+    function startPrivateChat(targetUser) {
+      const roomIds = [currentUser.uid, targetUser.uid].sort();
+      activeChatRoomId = `direct_${roomIds[0]}_${roomIds[1]}`;
+      chatTargetText.textContent = `Private: ${targetUser.displayName}`;
+      chatHeaderBar.classList.remove('public-mode');
+      friendsSection.classList.add('hidden');
+      searchSection.classList.add('hidden');
+      emptyStateMsg.classList.add('hidden');
+      chatWrapper.classList.remove('hidden');
+      loadMessages();
+    }
+
+    closeChatBtn.addEventListener('click', () => {
+      activeChatRoomId = null;
+      if (unsubscribeListener) unsubscribeListener();
+      chatWrapper.classList.add('hidden');
+      emptyStateMsg.classList.remove('hidden');
+    });
+
+    copyIdBtn.addEventListener('click', () => {
+      if (!myMyanmarId) return;
+      navigator.clipboard.writeText(myMyanmarId).then(() => alert("ID ကူယူပြီးပါပြီ: " + myMyanmarId));
+    });
+
+    loginBtn.addEventListener('click', async () => {
+      statusText.textContent = "Google သို့ ချိတ်ဆက်နေသည်...";
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        statusText.textContent = "Error: " + error.message;
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { isOnline: false });
+      }
+      await signOut(auth);
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        userNameSpan.textContent = user.displayName || user.email;
+        await setupUserProfile(user);
+        loginScreen.classList.add('hidden');
+        chatScreen.classList.remove('hidden');
+      } else {
+        currentUser = null;
+        myMyanmarId = "";
+        activeChatRoomId = null;
+        if (unsubscribeListener) unsubscribeListener();
+        loginScreen.classList.remove('hidden');
+        chatScreen.classList.add('hidden');
+        chatWrapper.classList.add('hidden');
+        emptyStateMsg.classList.remove('hidden');
+      }
+    });
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text || !currentUser || !activeChatRoomId) return;
+      messageInput.value = '';
+      try {
+        await addDoc(collection(db, `chats/${activeChatRoomId}/messages`), {
+          text: text,
+          uid: currentUser.uid,
+          displayName: currentUser.displayName || 'Anonymous',
+          myanmarId: myMyanmarId,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        alert("Message ပို့မရပါ: " + err.message);
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    function loadMessages() {
+      if (unsubscribeListener) unsubscribeListener();
+      if (!activeChatRoomId) return;
+      const q = query(collection(db, `chats/${activeChatRoomId}/messages`), orderBy("createdAt", "asc"));
+      
+      unsubscribeListener = onSnapshot(q, (snapshot) => {
+        chatBox.innerHTML = '';
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const isMe = data.uid === currentUser?.uid;
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `msg ${isMe ? 'msg-sent' : 'msg-received'}`;
+          msgDiv.innerHTML = `
+            <div class="msg-header">${isMe ? 'You' : data.displayName} (${data.myanmarId || 'No ID'})</div>
+            <div>${data.text}</div>
+          `;
+          chatBox.appendChild(msgDiv);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    }
+  </script>
+</body>
+</html>
+
+  
